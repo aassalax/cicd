@@ -11,4 +11,4 @@ on:
 
 jobs:
   draft-pr:
-    uses: ./auto-draft-pr.yml   # Appelle le workflow PR draft
+    uses: ./auto-pr.yml   # Appelle le workflow PR draft
