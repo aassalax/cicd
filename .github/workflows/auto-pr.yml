@@ -1,0 +1,20 @@
+name: Auto Draft PR
+
+on:
+  workflow_call:   # workflow réutilisable
+
+jobs:
+  create-draft-pr:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create Draft Pull Request
+        uses: peter-evans/create-pull-request@v6
+        with:
+          draft: true
+          branch: ${{ github.ref_name }}
+          title: "Draft PR from ${{ github.ref_name }}"
+          body: "This PR was automatically created from branch `${{ github.ref_name }}`"
