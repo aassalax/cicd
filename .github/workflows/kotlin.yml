@@ -1,0 +1,14 @@
+name: Kotlin CI
+
+on:
+  workflow_call:
+    inputs:
+      java-version:
+        description: 'Version de Java'
+        required: false
+        default: '17'
+        type: string
+
+jobs:
+  draft-pr:
+    uses: ./auto-draft-pr.yml   # Appelle le workflow PR draft
