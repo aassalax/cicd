@@ -7,10 +7,12 @@ on:
         description: 'Version de Java'
         required: false
         default: '17'
+        type: string
       gradle-task:
         description: 'Gradle tasks to run'
         required: false
         default: 'build test'
+        type: string
 
 jobs:
   build-and-test:
