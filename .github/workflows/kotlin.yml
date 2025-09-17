@@ -13,7 +13,9 @@ on:
         required: true
 
 jobs:
+  # Draft PR → toutes branches sauf main
   draft-pr:
+    if: github.ref_name != 'main'
     uses: ./.github/workflows/auto-pr.yml
     secrets:
       PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
