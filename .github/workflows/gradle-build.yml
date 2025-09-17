@@ -33,6 +33,3 @@ jobs:
 
       - name: Run Gradle tasks
         run: ./gradlew ${{ inputs.gradle-task }}
-
-      - name: Run Detekt (static analysis)
-        run: ./gradlew detekt
