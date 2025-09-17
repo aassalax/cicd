@@ -8,6 +8,15 @@ on:
         required: false
         default: '17'
         type: string
+      gradle-task:
+        description: 'Gradle tasks to run'
+        required: false
+        default: 'build test'
+        type: string
+      is-draft:
+        description: 'Indique si la PR est en draft'
+        required: true
+        type: boolean
     secrets:
       PAT_TOKEN:
         required: true
@@ -21,9 +30,9 @@ jobs:
       PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
 
 
-  # Ne s'exécute que sur PR non-draft
+  # Build & Test Gradle (PR non-draft)
   build-and-test:
-    if: github.event_name == 'pull_request' && github.event.pull_request.draft == false
+    if: ${{ inputs.is-draft == false }}
     uses: ./.github/workflows/gradle-build.yml
     with:
       java-version: ${{ inputs.java-version }}
