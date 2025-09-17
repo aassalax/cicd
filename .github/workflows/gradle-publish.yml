@@ -1,0 +1,110 @@
+name: Gradle Build & Publish
+
+on:
+  workflow_call:
+    inputs:
+      image-name:
+        description: "Nom de l'image docker (ex: back-test-app)"
+        required: true
+        type: string
+      java-version:
+        description: "Version de Java"
+        default: "17"
+        required: false
+        type: string
+    secrets:
+      SCW_SECRET_KEY:
+        required: true
+
+jobs:
+  build-publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # pour pouvoir inspecter les tags
+
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ inputs.java-version }}
+
+      - name: Build JAR
+        run: ./gradlew bootJar
+
+      - name: Extract PR labels
+        id: labels
+        run: |
+          PR_NUMBER=$(jq -r .pull_request.number < $GITHUB_EVENT_PATH || echo "")
+          if [ -z "$PR_NUMBER" ]; then
+            echo "labels=" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          LABELS=$(gh pr view $PR_NUMBER --json labels --jq '.labels[].name' || echo "")
+          echo "labels=$LABELS" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Compute version/tag
+        id: version
+        run: |
+          set -e
+          SHORT_SHA=$(echo $GITHUB_SHA | cut -c1-7)
+          DATE_TAG=$(date +'%d%m%Y-%H%M')
+
+          # Récupérer le dernier tag sémantique
+          LAST_TAG=$(git tag --list "v*" | sort -V | tail -n1)
+          if [ -z "$LAST_TAG" ]; then
+            LAST_TAG="v0.0.0"
+          fi
+          echo "Last tag: $LAST_TAG"
+
+          VERSION=$LAST_TAG
+          LABELS="${{ steps.labels.outputs.labels }}"
+
+          bump() {
+            IFS='.' read -r major minor patch <<< "${VERSION#v}"
+            case "$1" in
+              major) major=$((major+1)); minor=0; patch=0 ;;
+              minor) minor=$((minor+1)); patch=0 ;;
+              patch) patch=$((patch+1)) ;;
+            esac
+            VERSION="v$major.$minor.$patch"
+          }
+
+          if echo "$LABELS" | grep -q "major"; then
+            bump major
+          elif echo "$LABELS" | grep -q "feature"; then
+            bump minor
+          elif echo "$LABELS" | grep -q "bug"; then
+            bump patch
+          else
+            VERSION="main-${SHORT_SHA}-${DATE_TAG}"
+          fi
+
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Scaleway Container Registry
+        run: |
+          echo "${{ secrets.SCW_SECRET_KEY }}" | docker login rg.fr-par.scw.cloud/aassalax-registry \
+            -u nologin --password-stdin
+
+      - name: Build and Push Docker image
+        run: |
+          IMAGE=rg.fr-par.scw.cloud/aassalax-registry/${{ inputs.image-name }}
+          VERSION=${{ steps.version.outputs.version }}
+
+          echo "➡️ Docker tags: $VERSION and latest"
+
+          docker build -t $IMAGE:$VERSION .
+          docker push $IMAGE:$VERSION
+
+          docker tag $IMAGE:$VERSION $IMAGE:latest
+          docker push $IMAGE:latest
