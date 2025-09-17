@@ -19,3 +19,13 @@ jobs:
     uses: ./.github/workflows/auto-pr.yml
     secrets:
       PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
+
+
+  # Ne s'exécute que sur PR non-draft
+  build-and-test:
+    if: github.event_name == 'pull_request' && github.event.pull_request.draft == false
+    uses: ./.github/workflows/gradle-build.yml
+    with:
+      java-version: ${{ inputs.java-version }}
+      gradle-task: ${{ inputs.gradle-task }}
+
