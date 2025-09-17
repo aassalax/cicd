@@ -71,6 +71,15 @@ jobs:
           LABEL="${{ steps.vars.outputs.label }}"
           BRANCH="${{ steps.vars.outputs.branch }}"
           TITLE="${{ steps.vars.outputs.title }}"
+          
+          # Vérifier si le label existe
+          if [ -n "$LABEL" ]; then
+            EXISTING_LABEL=$(gh label list --json name --jq ".[] | select(.name==\"$LABEL\")" || echo "")
+            if [ -z "$EXISTING_LABEL" ]; then
+              echo "Label '$LABEL' n'existe pas, création..."
+              gh label create "$LABEL" --color FFCC00 --description "Auto-generated label"
+            fi
+          fi
 
           ARGS=(--title "$TITLE" --body "Auto-generated PR" --head "$BRANCH" --base main --draft)
 
