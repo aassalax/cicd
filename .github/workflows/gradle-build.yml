@@ -6,7 +6,7 @@ on:
       java-version:
         description: 'Version de Java'
         required: false
-        default: '17'
+        default: '21'
         type: string
       gradle-task:
         description: 'Gradle tasks to run'
@@ -20,9 +20,9 @@ on:
         type: boolean
 
 jobs:
-  build-and-test:
+  build-with-db:
+    if: ${{ inputs.use-database == true }}
     runs-on: ubuntu-latest
-
     services:
       postgres:
         image: postgres:15
@@ -37,8 +37,6 @@ jobs:
           --health-interval=10s
           --health-timeout=5s
           --health-retries=5
-    if: ${{ inputs.use-database == true }}
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -55,3 +53,19 @@ jobs:
           DB_URL: jdbc:postgresql://localhost:5432/testdb
           DB_USER: test
           DB_PASSWORD: test
+
+  build-without-db:
+    if: ${{ inputs.use-database != true }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: ${{ inputs.java-version }}
+
+      - name: Run Gradle tasks
+        run: ./gradlew ${{ inputs.gradle-task }}
