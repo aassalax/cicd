@@ -13,6 +13,11 @@ on:
         required: false
         default: 'build'
         type: string
+      use-database:
+        description: 'Démarrer un Postgres pour les tests'
+        required: false
+        default: false
+        type: boolean
 
 jobs:
   build-and-test:
@@ -20,15 +25,16 @@ jobs:
 
     services:
       postgres:
+        if: ${{ inputs.use-database == true }}
         image: postgres:15
         env:
-          POSTGRES_USER: test
-          POSTGRES_PASSWORD: test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
           POSTGRES_DB: testdb
         ports:
           - 5432:5432
         options: >-
-          --health-cmd="pg_isready -U test"
+          --health-cmd="pg_isready -U postgres"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=5
@@ -45,7 +51,3 @@ jobs:
 
       - name: Run Gradle tasks
         run: ./gradlew ${{ inputs.gradle-task }}
-        env:
-          DB_URL: jdbc:postgresql://localhost:5432/testdb
-          DB_USER: test
-          DB_PASSWORD: test
