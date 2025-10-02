@@ -25,7 +25,6 @@ jobs:
 
     services:
       postgres:
-        if: ${{ inputs.use-database == true }}
         image: postgres:15
         env:
           POSTGRES_USER: postgres
@@ -38,6 +37,7 @@ jobs:
           --health-interval=10s
           --health-timeout=5s
           --health-retries=5
+    if: ${{ inputs.use-database == true || inputs.use-database == false }}
 
     steps:
       - name: Checkout code
